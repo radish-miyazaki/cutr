@@ -5,16 +5,17 @@ use clap::{Args, Parser};
 use regex::Regex;
 
 pub type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
+type PositionList = Vec<Range<usize>>;
 
 #[derive(Args, Debug)]
 #[group(required = true, multiple = false)]
 struct Extract {
-    #[arg(short, long, help = "Selected fields")]
-    fields: Option<String>,
-    #[arg(short, long, help = "Selected bytes")]
-    bytes: Option<String>,
-    #[arg(short, long, help = "Selected characters")]
-    chars: Option<String>,
+    #[arg(short, long, help = "Selected fields", value_parser = parse_pos)]
+    fields: PositionList,
+    #[arg(short, long, help = "Selected bytes", value_parser = parse_pos)]
+    bytes: PositionList,
+    #[arg(short, long, help = "Selected characters", value_parser = parse_pos)]
+    chars: PositionList,
 }
 
 #[derive(Parser, Debug)]
@@ -53,7 +54,7 @@ fn parse_index(input: &str) -> Result<usize, String> {
         })
 }
 
-fn parse_pos(range: &str) -> MyResult<Vec<Range<usize>>> {
+fn parse_pos(range: &str) -> Result<PositionList, String> {
     let range_re = Regex::new(r"^(\d+)-(\d+)$").unwrap();
 
     range.split(',')
