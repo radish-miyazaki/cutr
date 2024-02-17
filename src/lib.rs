@@ -70,15 +70,15 @@ pub struct Cli {
     delimiter: char,
 }
 
+pub fn get_args() -> MyResult<Cli> {
+    Ok(Cli::parse())
+}
+
 fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
     match filename {
         "-" => Ok(Box::new(BufReader::new(std::io::stdin()))),
         _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
     }
-}
-
-pub fn get_args() -> MyResult<Cli> {
-    Ok(Cli::parse())
 }
 
 pub fn run(cli: Cli) -> MyResult<()> {
