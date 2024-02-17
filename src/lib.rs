@@ -7,40 +7,6 @@ use regex::Regex;
 pub type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
 type PositionList = Vec<Range<usize>>;
 
-#[derive(Args, Debug)]
-#[group(required = true, multiple = false)]
-struct Extract {
-    #[arg(short, long, help = "Selected fields", value_parser = parse_pos)]
-    fields: PositionList,
-    #[arg(short, long, help = "Selected bytes", value_parser = parse_pos)]
-    bytes: PositionList,
-    #[arg(short, long, help = "Selected characters", value_parser = parse_pos)]
-    chars: PositionList,
-}
-
-#[derive(Parser, Debug)]
-#[command(name = "cutr")]
-#[command(version = "0.1.0")]
-#[command(about = "Rust cut")]
-#[command(author = "Radish-Miyazaki <y.hidaka.kobe@gmail.com>")]
-pub struct Cli {
-    #[command(flatten)]
-    extract: Extract,
-    #[arg(value_name = "FILE", help = "Input file(s)", default_value = "-")]
-    files: Vec<String>,
-    #[arg(short, long = "delim", help = "Field delimiter", default_value = "\t")]
-    delimiter: char,
-}
-
-pub fn get_args() -> MyResult<Cli> {
-    Ok(Cli::parse())
-}
-
-pub fn run(cli: Cli) -> MyResult<()> {
-    println!("{:?}", cli);
-    Ok(())
-}
-
 fn parse_index(input: &str) -> Result<usize, String> {
     let value_error = || format!("illegal list value: \"{}\"", input);
 
@@ -75,6 +41,40 @@ fn parse_pos(range: &str) -> Result<PositionList, String> {
                 })
         }).collect::<Result<_, _>>()
         .map_err(|e| e.into())
+}
+
+#[derive(Args, Debug)]
+#[group(required = true, multiple = false)]
+struct Extract {
+    #[arg(short, long, help = "Selected fields", value_parser = parse_pos)]
+    fields: PositionList,
+    #[arg(short, long, help = "Selected bytes", value_parser = parse_pos)]
+    bytes: PositionList,
+    #[arg(short, long, help = "Selected characters", value_parser = parse_pos)]
+    chars: PositionList,
+}
+
+#[derive(Parser, Debug)]
+#[command(name = "cutr")]
+#[command(version = "0.1.0")]
+#[command(about = "Rust cut")]
+#[command(author = "Radish-Miyazaki <y.hidaka.kobe@gmail.com>")]
+pub struct Cli {
+    #[command(flatten)]
+    extract: Extract,
+    #[arg(value_name = "FILE", help = "Input file(s)", default_value = "-")]
+    files: Vec<String>,
+    #[arg(short, long = "delim", help = "Field delimiter", default_value = "\t")]
+    delimiter: char,
+}
+
+pub fn get_args() -> MyResult<Cli> {
+    Ok(Cli::parse())
+}
+
+pub fn run(cli: Cli) -> MyResult<()> {
+    println!("{:?}", cli);
+    Ok(())
 }
 
 #[cfg(test)]
