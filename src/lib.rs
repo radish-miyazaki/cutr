@@ -4,6 +4,7 @@ use std::num::NonZeroUsize;
 use std::ops::Range;
 
 use clap::{Args, Parser};
+use csv::{ReaderBuilder, StringRecord, WriterBuilder};
 use regex::Regex;
 
 pub type MyResult<T> = Result<T, Box<dyn std::error::Error>>;
@@ -105,18 +106,54 @@ fn extract_bytes(line: &str, byte_pos: &[Range<usize>]) -> String {
     String::from_utf8_lossy(&bytes).to_string()
 }
 
+fn extract_fields(
+    record: &StringRecord,
+    field_pos: &[Range<usize>],
+) -> Vec<String> {
+    let mut fields: Vec<String> = vec![];
+
+    for pos in field_pos {
+        record.iter()
+            .skip(pos.start)
+            .take(pos.end - pos.start)
+            .for_each(|s| fields.push(s.to_string()));
+    }
+
+    fields
+}
+
 pub fn run(cli: Cli) -> MyResult<()> {
     for filename in &cli.files {
         match open(filename) {
             Err(e) => eprintln!("{}: {}", filename, e),
             Ok(f) => {
-                for line in f.lines() {
-                    let line = line?;
-                    if let Some(ref position_list) = cli.extract.chars {
+                if let Some(ref position_list) = cli.extract.chars {
+                    for line in f.lines() {
+                        let line = line?;
                         println!("{}", extract_chars(&line, &position_list));
-                    } else if let Some(ref position_list) = cli.extract.bytes {
+                    }
+                } else if let Some(ref position_list) = cli.extract.bytes {
+                    for line in f.lines() {
+                        let line = line?;
                         println!("{}", extract_bytes(&line, &position_list));
                     }
+                } else if let Some(ref position_list) = cli.extract.fields {
+                    let mut rdr = ReaderBuilder::new()
+                        .has_headers(false)
+                        .delimiter(cli.delimiter as u8)
+                        .from_reader(f);
+
+                    let mut wtr = WriterBuilder::new()
+                        .delimiter(cli.delimiter as u8)
+                        .from_writer(std::io::stdout());
+
+                    for record in rdr.records() {
+                        let record = record?;
+                        let fields = extract_fields(&record, &position_list);
+                        wtr.write_record(fields.iter())?;
+                    }
+                } else {
+                    unimplemented!()
                 }
             }
         }
@@ -270,5 +307,18 @@ mod unit_tests {
         assert_eq!(extract_bytes("ábc", &[0..4]), "ábc".to_string());
         assert_eq!(extract_bytes("ábc", &[3..4, 2..3]), "cb".to_string());
         assert_eq!(extract_bytes("ábc", &[0..2, 5..6]), "á".to_string());
+    }
+
+    #[test]
+    fn test_extract_fields() {
+        let rec = StringRecord::from(vec!["Captain", "Sham", "12345"]);
+        assert_eq!(extract_fields(&rec, &[0..1]), &["Captain"]);
+        assert_eq!(extract_fields(&rec, &[1..2]), &["Sham"]);
+        assert_eq!(
+            extract_fields(&rec, &[0..1, 2..3]),
+            &["Captain", "12345"]
+        );
+        assert_eq!(extract_fields(&rec, &[0..1, 3..4]), &["Captain"]);
+        assert_eq!(extract_fields(&rec, &[1..2, 0..1]), &["Sham", "Captain"]);
     }
 }
