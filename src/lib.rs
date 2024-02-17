@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::num::NonZeroUsize;
 use std::ops::Range;
 
@@ -66,6 +68,13 @@ pub struct Cli {
     files: Vec<String>,
     #[arg(short, long = "delim", help = "Field delimiter", default_value = "\t")]
     delimiter: char,
+}
+
+fn open(filename: &str) -> MyResult<Box<dyn BufRead>> {
+    match filename {
+        "-" => Ok(Box::new(BufReader::new(std::io::stdin()))),
+        _ => Ok(Box::new(BufReader::new(File::open(filename)?))),
+    }
 }
 
 pub fn get_args() -> MyResult<Cli> {
