@@ -49,11 +49,11 @@ fn parse_pos(range: &str) -> Result<PositionList, String> {
 #[group(required = true, multiple = false)]
 struct Extract {
     #[arg(short, long, help = "Selected fields", value_parser = parse_pos)]
-    fields: PositionList,
+    fields: Option<PositionList>,
     #[arg(short, long, help = "Selected bytes", value_parser = parse_pos)]
-    bytes: PositionList,
+    bytes: Option<PositionList>,
     #[arg(short, long, help = "Selected characters", value_parser = parse_pos)]
-    chars: PositionList,
+    chars: Option<PositionList>,
 }
 
 #[derive(Parser, Debug)]
