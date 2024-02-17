@@ -106,7 +106,22 @@ fn extract_bytes(line: &str, byte_pos: &[Range<usize>]) -> String {
 }
 
 pub fn run(cli: Cli) -> MyResult<()> {
-    println!("{:?}", cli);
+    for filename in &cli.files {
+        match open(filename) {
+            Err(e) => eprintln!("{}: {}", filename, e),
+            Ok(f) => {
+                for line in f.lines() {
+                    let line = line?;
+                    if let Some(ref position_list) = cli.extract.chars {
+                        println!("{}", extract_chars(&line, &position_list));
+                    } else if let Some(ref position_list) = cli.extract.bytes {
+                        println!("{}", extract_bytes(&line, &position_list));
+                    }
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -245,5 +260,15 @@ mod unit_tests {
             extract_chars("ábc", &[0..1, 1..2, 4..5]),
             "áb".to_string()
         );
+    }
+
+    #[test]
+    fn test_extract_bytes() {
+        assert_eq!(extract_bytes("ábc", &[0..1]), "�".to_string());
+        assert_eq!(extract_bytes("ábc", &[0..2]), "á".to_string());
+        assert_eq!(extract_bytes("ábc", &[0..3]), "áb".to_string());
+        assert_eq!(extract_bytes("ábc", &[0..4]), "ábc".to_string());
+        assert_eq!(extract_bytes("ábc", &[3..4, 2..3]), "cb".to_string());
+        assert_eq!(extract_bytes("ábc", &[0..2, 5..6]), "á".to_string());
     }
 }
